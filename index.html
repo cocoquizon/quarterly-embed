@@ -2,72 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Magazine Viewer</title>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background: #f7f5f2;
+      font-family: Georgia, serif;
+    }
+
+    #shell {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      font-family: Georgia, serif;
+      width: 100%;
+      height: 100%;
+      padding: 16px 0 8px;
     }
 
-    /* ── Book ── */
     #stage {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      flex: 1;
       width: 100%;
-      padding: 32px 16px 16px;
+      gap: 12px;
+      min-height: 0;
     }
 
     #book {
-      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      box-shadow: 0 6px 32px rgba(0,0,0,0.13);
+      flex-shrink: 0;
     }
 
-    /* ── Arrows ── */
     .arrow {
       background: none;
       border: none;
       cursor: pointer;
-      color: #999;
+      color: #bbb;
+      font-size: 20px;
       padding: 8px;
-      line-height: 1;
-      font-size: 22px;
-      transition: color 0.15s;
       flex-shrink: 0;
+      transition: color 0.15s;
+      line-height: 1;
     }
-    .arrow:hover { color: #222; }
+    .arrow:hover { color: #333; }
 
-    @media (max-width: 780px) {
-      .arrow { font-size: 16px; padding: 4px; }
-      #stage { gap: 8px; padding: 16px 8px 8px; }
-    }
-
-    /* ── Bottom bar ── */
     #bar {
       display: flex;
       align-items: center;
-      gap: 24px;
-      padding: 14px 0 20px;
-      color: #aaa;
-      font-size: 12px;
-      letter-spacing: 0.1em;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 0 6px;
+      flex-shrink: 0;
     }
 
-    #page-num { color: #555; }
+    #page-num {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: #999;
+    }
 
-    /* Thumbnail dots */
     #dots {
       display: flex;
-      gap: 6px;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 200px;
     }
 
     .dot {
@@ -77,8 +84,9 @@
       background: #ccc;
       cursor: pointer;
       transition: background 0.2s, transform 0.2s;
+      flex-shrink: 0;
     }
-    .dot.on { background: #222; transform: scale(1.4); }
+    .dot.on { background: #444; transform: scale(1.5); }
   </style>
 </head>
 <body>
@@ -105,45 +113,56 @@
     'q2-images/web-fbcq2-15.jpg',
     'q2-images/web-fbcq2-16.jpg',
   ];
-  var PAGE_RATIO = 0.773; // width ÷ height (standard magazine = 0.773)
+  var PAGE_RATIO = 0.773; // width / height  (standard magazine = 0.773)
   // ─────────────────────────────────────────
 </script>
 
-<div id="stage">
-  <button class="arrow" id="prev">&#8592;</button>
-  <div id="book"></div>
-  <button class="arrow" id="next">&#8594;</button>
-</div>
-
-<div id="bar">
-  <div id="dots"></div>
-  <span id="page-num"></span>
+<div id="shell">
+  <div id="stage">
+    <button class="arrow" id="prev">&#8592;</button>
+    <div id="book"></div>
+    <button class="arrow" id="next">&#8594;</button>
+  </div>
+  <div id="bar">
+    <div id="dots"></div>
+    <span id="page-num"></span>
+  </div>
 </div>
 
 <script>
 (function () {
-  var twoUp = window.innerWidth > 780;
-  var stageW = window.innerWidth - (twoUp ? 100 : 60);
-  var stageH = window.innerHeight - 120;
+  var ARROW_W   = 48;
+  var BAR_H     = 40;
+  var MOBILE_BP = 640;
 
-  var pH, pW;
+  var W       = window.innerWidth;
+  var H       = window.innerHeight;
+  var twoUp   = W > MOBILE_BP;
+  var usableW = W - ARROW_W * 2 - 24;
+  var usableH = H - BAR_H - 32;
+
+  var pW, pH;
   if (twoUp) {
-    pH = Math.min(stageH, (stageW / 2) / PAGE_RATIO);
+    var halfW = usableW / 2;
+    pH = Math.min(usableH, halfW / PAGE_RATIO);
     pW = Math.round(pH * PAGE_RATIO);
-    if (pW * 2 > stageW) { pW = Math.floor(stageW / 2); pH = Math.round(pW / PAGE_RATIO); }
+    if (pW * 2 > usableW) { pW = Math.floor(usableW / 2); pH = Math.round(pW / PAGE_RATIO); }
   } else {
-    pW = Math.min(stageW, Math.round(stageH * PAGE_RATIO));
+    pW = Math.min(usableW, Math.round(usableH * PAGE_RATIO));
     pH = Math.round(pW / PAGE_RATIO);
   }
 
   var flip = new St.PageFlip(document.getElementById('book'), {
-    width: pW, height: pH,
-    size: 'fixed',
-    showCover: true,
-    usePortrait: !twoUp,
-    flippingTime: 600,
-    drawShadow: true,
-    maxShadowOpacity: 0.3,
+    width:             pW,
+    height:            pH,
+    size:              'fixed',
+    showCover:         true,
+    usePortrait:       !twoUp,
+    flippingTime:      550,
+    drawShadow:        true,
+    maxShadowOpacity:  0.25,
+    clickEventForward: true,
+    useMouseEvents:    true,
   });
 
   flip.loadFromImages(PAGES);
@@ -160,17 +179,19 @@
   function update(n) {
     var total = PAGES.length;
     document.getElementById('page-num').textContent =
-      (twoUp && n < total - 1) ? (n + 1) + '\u2013' + (n + 2) + ' / ' + total : (n + 1) + ' / ' + total;
+      (twoUp && n < total - 1)
+        ? (n + 1) + '\u2013' + (n + 2) + ' / ' + total
+        : (n + 1) + ' / ' + total;
     document.querySelectorAll('.dot').forEach(function (d, i) {
       d.classList.toggle('on', i === n || (twoUp && i === n + 1));
     });
   }
 
-  flip.on('init', function () { update(0); });
+  flip.on('init', function ()  { update(0); });
   flip.on('flip', function (e) { update(e.data); });
 
-  document.getElementById('prev').addEventListener('click', function () { flip.flipPrev(); });
-  document.getElementById('next').addEventListener('click', function () { flip.flipNext(); });
+  document.getElementById('prev').onclick = function () { flip.flipPrev(); };
+  document.getElementById('next').onclick = function () { flip.flipNext(); };
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowLeft')  flip.flipPrev();
@@ -178,11 +199,6 @@
   });
 })();
 </script>
-
-</body>
-</html>
-
-
 
 </body>
 </html>
