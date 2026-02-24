@@ -2,43 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Magazine Viewer</title>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+    body {
       background: #f7f5f2;
-      font-family: Georgia, serif;
-    }
-
-    #shell {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 100%;
-      height: 100%;
-      padding: 16px 0 8px;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Georgia, serif;
     }
 
     #stage {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 16px;
       flex: 1;
       width: 100%;
-      gap: 12px;
       min-height: 0;
     }
 
     #book {
-      box-shadow: 0 6px 32px rgba(0,0,0,0.13);
-      flex-shrink: 0;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.12);
     }
 
     .arrow {
@@ -50,41 +42,29 @@
       padding: 8px;
       flex-shrink: 0;
       transition: color 0.15s;
-      line-height: 1;
     }
     .arrow:hover { color: #333; }
 
     #bar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 20px;
-      padding: 10px 0 6px;
-      flex-shrink: 0;
+      gap: 16px;
+      padding: 12px 0 10px;
     }
 
     #page-num {
       font-size: 11px;
       letter-spacing: 0.1em;
-      color: #999;
+      color: #aaa;
     }
 
-    #dots {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: 200px;
-    }
-
+    #dots { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; max-width: 220px; }
     .dot {
-      width: 5px;
-      height: 5px;
+      width: 5px; height: 5px;
       border-radius: 50%;
       background: #ccc;
       cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-      flex-shrink: 0;
+      transition: background 0.2s, transform 0.15s;
     }
     .dot.on { background: #444; transform: scale(1.5); }
   </style>
@@ -92,9 +72,9 @@
 <body>
 
 <script>
-  // ─────────────────────────────────────────
+  // ─────────────────────────
   //  CONFIGURATION
-  // ─────────────────────────────────────────
+  // ─────────────────────────
   var PAGES = [
     'q2-images/web-fbcq2.jpg',
     'q2-images/web-fbcq2-2.jpg',
@@ -113,55 +93,44 @@
     'q2-images/web-fbcq2-15.jpg',
     'q2-images/web-fbcq2-16.jpg',
   ];
-  var PAGE_RATIO = 0.773; // width / height  (standard magazine = 0.773)
-  // ─────────────────────────────────────────
+  var PAGE_RATIO = 0.773; // width / height
+  // ─────────────────────────
 </script>
 
-<div id="shell">
-  <div id="stage">
-    <button class="arrow" id="prev">&#8592;</button>
-    <div id="book"></div>
-    <button class="arrow" id="next">&#8594;</button>
-  </div>
-  <div id="bar">
-    <div id="dots"></div>
-    <span id="page-num"></span>
-  </div>
+<div id="stage">
+  <button class="arrow" id="prev">&#8592;</button>
+  <div id="book"></div>
+  <button class="arrow" id="next">&#8594;</button>
+</div>
+<div id="bar">
+  <div id="dots"></div>
+  <span id="page-num"></span>
 </div>
 
 <script>
 (function () {
-  var ARROW_W   = 48;
-  var BAR_H     = 40;
-  var MOBILE_BP = 640;
+  // Always single page — size to fit the window
+  var ARROW  = 56;
+  var BAR    = 44;
+  var PAD    = 24;
 
-  var W       = window.innerWidth;
-  var H       = window.innerHeight;
-  var twoUp   = W > MOBILE_BP;
-  var usableW = W - ARROW_W * 2 - 24;
-  var usableH = H - BAR_H - 32;
+  var availW = window.innerWidth  - ARROW * 2 - PAD;
+  var availH = window.innerHeight - BAR - PAD;
 
-  var pW, pH;
-  if (twoUp) {
-    var halfW = usableW / 2;
-    pH = Math.min(usableH, halfW / PAGE_RATIO);
-    pW = Math.round(pH * PAGE_RATIO);
-    if (pW * 2 > usableW) { pW = Math.floor(usableW / 2); pH = Math.round(pW / PAGE_RATIO); }
-  } else {
-    pW = Math.min(usableW, Math.round(usableH * PAGE_RATIO));
-    pH = Math.round(pW / PAGE_RATIO);
-  }
+  // Fit page within available space, preserving ratio
+  var pW = Math.min(availW, Math.round(availH * PAGE_RATIO));
+  var pH = Math.round(pW / PAGE_RATIO);
+  if (pH > availH) { pH = availH; pW = Math.round(pH * PAGE_RATIO); }
 
   var flip = new St.PageFlip(document.getElementById('book'), {
     width:             pW,
     height:            pH,
     size:              'fixed',
     showCover:         true,
-    usePortrait:       !twoUp,
-    flippingTime:      550,
+    usePortrait:       true,   // always single page
+    flippingTime:      500,
     drawShadow:        true,
-    maxShadowOpacity:  0.25,
-    clickEventForward: true,
+    maxShadowOpacity:  0.2,
     useMouseEvents:    true,
   });
 
@@ -177,13 +146,9 @@
   });
 
   function update(n) {
-    var total = PAGES.length;
-    document.getElementById('page-num').textContent =
-      (twoUp && n < total - 1)
-        ? (n + 1) + '\u2013' + (n + 2) + ' / ' + total
-        : (n + 1) + ' / ' + total;
+    document.getElementById('page-num').textContent = (n + 1) + ' / ' + PAGES.length;
     document.querySelectorAll('.dot').forEach(function (d, i) {
-      d.classList.toggle('on', i === n || (twoUp && i === n + 1));
+      d.classList.toggle('on', i === n);
     });
   }
 
@@ -199,6 +164,9 @@
   });
 })();
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
